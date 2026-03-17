@@ -1,0 +1,29 @@
+{
+  "name": "tbx-event-simulator",
+  "version": "1.0.0",
+  "description": "AT&T TBX Order Event Simulator with RabbitMQ and REST API",
+  "scripts": {
+    "build": "tsc",
+    "start:simulator": "node dist/simulator.js",
+    "start:api": "node dist/api.js",
+    "start:all": "concurrently \"npm run start:simulator\" \"npm run start:api\"",
+    "dev:simulator": "ts-node src/simulator.ts",
+    "dev:api": "ts-node src/api.ts",
+    "dev:all": "concurrently \"npm run dev:simulator\" \"npm run dev:api\""
+  },
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "dotenv": "^17.3.1",
+    "express": "^4.21.1",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.5",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/uuid": "^10.0.0",
+    "concurrently": "^9.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.0"
+  }
+}

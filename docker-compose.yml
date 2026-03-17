@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: tbx-rabbitmq
+    hostname: tbx-rabbitmq
+    ports:
+      - "5672:5672"    # AMQP protocol
+      - "15672:15672"  # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: tbx_user
+      RABBITMQ_DEFAULT_PASS: tbx_pass
+      RABBITMQ_DEFAULT_VHOST: tbx
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tbx-net
+
+  simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tbx-simulator
+    command: npm run start:simulator
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URL: amqp://tbx_user:tbx_pass@rabbitmq:5672/tbx
+      SIMULATOR_INTERVAL_MS: 3000
+      SIMULATOR_ORDER_COUNT: 10
+    networks:
+      - tbx-net
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tbx-api
+    command: npm run start:api
+    ports:
+      - "3001:3001"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URL: amqp://tbx_user:tbx_pass@rabbitmq:5672/tbx
+      API_PORT: 3001
+    networks:
+      - tbx-net
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  tbx-net:
+    driver: bridge
