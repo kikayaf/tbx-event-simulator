@@ -117,6 +117,140 @@ Set via environment variables or `.env` file (copy `.env.example`):
 | `SIMULATOR_CANCEL_RATE`  | 0.05    | Probability of cancellation        |
 | `API_PORT`               | 3001    | REST API listen port               |
 
+## Exposing the API Externally with ngrok
+
+By default the API runs on `localhost` and is not reachable from external services
+such as Power Automate. ngrok creates a secure public tunnel to your local port.
+
+**ngrok documentation:** https://ngrok.com/docs/getting-started/
+
+### Step 1 — Install ngrok
+
+```bash
+curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+sudo apt-get update && sudo apt-get install -y ngrok
+```
+
+### Step 2 — Create a free account and authenticate
+
+1. Sign up at **https://dashboard.ngrok.com/signup**
+2. Copy your auth token from **https://dashboard.ngrok.com/get-started/your-authtoken**
+3. Add it to your local ngrok config:
+
+```bash
+ngrok config add-authtoken <YOUR_TOKEN>
+```
+
+### Step 3 — Start the tunnel
+
+Make sure the simulator is already running (`npm run dev:all`), then in a new terminal:
+
+```bash
+ngrok http 3001
+```
+
+You will see output like:
+
+```
+Forwarding  https://abc123.ngrok-free.dev -> http://localhost:3001
+```
+
+The `https://` URL is now publicly accessible.
+
+### Step 4 — Test the tunnel
+
+```bash
+curl https://<your-ngrok-url>/health
+curl https://<your-ngrok-url>/api/events
+curl https://<your-ngrok-url>/api/orders
+curl https://<your-ngrok-url>/api/stats
+```
+
+### Step 5 — Inspect traffic in the ngrok dashboard
+
+ngrok ships with a local web inspector. Open **http://localhost:4040** in your browser
+to see every request that passes through the tunnel — including URL, headers, request
+body, response body, and status code. You can also **replay** any request directly
+from this UI without re-triggering the consumer.
+
+---
+
+## Integrating with Power Automate
+
+With the API publicly exposed via ngrok, your existing Power Automate flow can pull
+in TBX events using the built-in HTTP connector and route them to SharePoint and email.
+
+### Step 1 — Add an HTTP action (fetch events)
+
+Inside your existing flow, add a **HTTP** action at the point where you want events pulled:
+
+- **Method:** `GET`
+- **URI:** `https://<your-ngrok-url>/api/events?limit=20`
+
+> Use `?status=` to filter by a specific lifecycle stage, e.g. `?status=DELIVERED`.
+
+### Step 2 — Parse the JSON response
+
+1. Add a **Parse JSON** action after the HTTP step
+2. Set **Content** to `Body` from the HTTP step
+3. Click **Generate from sample** and paste the following:
+
+```json
+[{
+  "eventId": "e1",
+  "orderId": "ORD-1773773838793-0001",
+  "customerId": "CUST-1001",
+  "status": "QUOTE_CREATED",
+  "timestamp": "2026-03-24T22:32:16.759Z",
+  "sourceSystem": "TBX-Oracle"
+}]
+```
+
+### Step 3 — Loop through events
+
+Add an **Apply to each** action, selecting `Body` from the Parse JSON step.
+Inside the loop add the actions below.
+
+#### Write to SharePoint
+
+Add a **Create item** action inside the loop:
+
+| SharePoint Column | Dynamic Content      |
+|-------------------|----------------------|
+| Title             | `eventId`            |
+| Order ID          | `orderId`            |
+| Customer ID       | `customerId`         |
+| Status            | `status`             |
+| Timestamp         | `timestamp`          |
+| Source System     | `sourceSystem`       |
+
+#### Send an Email
+
+Add a **Send an email (V2)** action inside the loop:
+
+- **To:** your notification address
+- **Subject:** `TBX Event: [status] - [orderId]`
+- **Body:**
+  ```
+  Order [orderId] for customer [customerId]
+  Status: [status]
+  Time:   [timestamp]
+  Source: [sourceSystem]
+  ```
+
+### Step 4 — Save and test
+
+1. Click **Save**
+2. Click **Test** → **Manually** → **Run flow**
+3. Check your SharePoint list and inbox for incoming events
+
+> **Note:** The free ngrok plan generates a new URL each time you restart the tunnel.
+> Update the URI in your HTTP action whenever the URL changes, or upgrade to a paid
+> ngrok plan to use a fixed static domain.
+
+---
+
 ## Project Structure
 
 ```
