@@ -6,9 +6,11 @@ A proof-of-concept that simulates TBX Oracle order events flowing through Rabbit
 ## Architecture
 - **Event Simulator** (`src/simulator.ts`) -- Generates order events and publishes to RabbitMQ
 - **RabbitMQ** -- Message broker using a topic exchange (`tbx.events`) with routing keys per status
-- **REST API** (`src/api.ts`) -- Express server that consumes events from RabbitMQ and serves them via REST endpoints
+- **REST API** (`src/api.ts`) -- Express server that consumes events from RabbitMQ, serves them via REST endpoints, and fires a webhook to Power Automate on each new event
 - **Shared types** (`src/types.ts`) -- Event schema, order model, status enum, RabbitMQ constants
 - **RabbitMQ client** (`src/rabbitmq.ts`) -- Connection manager with retry logic, publish/subscribe helpers
+- **ngrok** -- Secure public tunnel exposing the local API (`:3001`) so Power Automate can reach it
+- **Power Automate** -- Downstream consumer triggered by webhook; fetches events via ngrok, writes to SharePoint and sends email notifications
 
 ## Tech Stack
 - TypeScript, Node.js 20+
@@ -60,7 +62,25 @@ Exception events (terminal): PAYMENT_FAILED | OUT_OF_STOCK | SHIPPING_DELAYED | 
 - Routing keys: `order.BOOKED`, `order.SHIPPED`, `order.RECEIVED`, `order.PARTIALLY_RECEIVED`, `order.DATE_CHANGE`, `order.PAYMENT_FAILED`, `order.OUT_OF_STOCK`, `order.SHIPPING_DELAYED`, `order.ADDRESS_INVALID`, `order.SYSTEM_ERROR`
 
 ## Environment Variables
-See `.env.example` for all configurable values. Key ones: `RABBITMQ_URL`, `SIMULATOR_ORDER_COUNT`, `SIMULATOR_INTERVAL_MS`, `SIMULATOR_EXCEPTION_RATE`, `SIMULATOR_DATE_CHANGE_RATE`, `SIMULATOR_PARTIAL_RECEIVE_RATE`, `API_PORT`.
+See `.env.example` for all configurable values. Key ones: `RABBITMQ_URL`, `SIMULATOR_ORDER_COUNT`, `SIMULATOR_INTERVAL_MS`, `SIMULATOR_EXCEPTION_RATE`, `SIMULATOR_DATE_CHANGE_RATE`, `SIMULATOR_PARTIAL_RECEIVE_RATE`, `API_PORT`, `POWER_AUTOMATE_WEBHOOK_URL`.
+
+## ngrok (External Access)
+The API runs on `localhost:3001` by default. ngrok creates a public HTTPS tunnel so Power Automate can reach it.
+- Install: https://ngrok.com/docs/getting-started/
+- Run: `ngrok http 3001`
+- Inspect traffic: http://localhost:4040
+- The free plan generates a new URL on each restart — update `.env` and Power Automate HTTP action accordingly
+- Use a static domain (ngrok dashboard → Cloud Edge → Domains) to avoid URL changes
+
+## Power Automate Integration
+The API uses a webhook push pattern:
+1. New event ingested from RabbitMQ
+2. API POSTs to `POWER_AUTOMATE_WEBHOOK_URL` (the flow's HTTP trigger URL)
+3. Power Automate wakes up and GETs `/api/events` via the ngrok URL
+4. Flow writes events to SharePoint and sends email notifications
+
+Set `POWER_AUTOMATE_WEBHOOK_URL` in `.env` to the HTTP POST URL from the Power Automate HTTP Request trigger.
+Leave blank to disable webhook notifications (API still works normally).
 
 ## Conventions
 - All source in `src/`, compiled output in `dist/`

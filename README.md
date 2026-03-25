@@ -11,17 +11,38 @@ broker for downstream consumers including SharePoint and email notifications.
 ### POC (This Simulator)
 
 ```
-+------------------+       +-------------------+       +----------------+       +--------------------+
-|  Event Simulator | ----> |     RabbitMQ      | ----> |   REST API     | <---- |   Power Automate   |
-|  (TypeScript)    |       |  (topic exchange) |       |   (Express)    |       |   (polls /api/*)   |
-+------------------+       +-------------------+       +----------------+       +--------------------+
-      |                           |                          |                           |
-  TBX-Oracle                 tbx.events                 :3001/api/*            SharePoint / Email
-  (simulated)            (topic exchange)
++------------------+       +-------------------+       +---------------------------+
+|  Event Simulator | ----> |     RabbitMQ      | ----> |         REST API          |
+|  (TypeScript)    |       |  (topic exchange) |       |        (Express)          |
++------------------+       +-------------------+       |       :3001/api/*         |
+      |                           |                    |                           |
+  TBX-Oracle                 tbx.events                | 1. Ingests event          |
+  (simulated)            (topic exchange)              | 2. POST webhook trigger   |
+                                                       +-------------+-------------+
+                                                                     |
+                                                          POST (webhook trigger)
+                                                                     |
+                                                                     v
+                                                       +-----------------------------+
+                                                       |      Power Automate         |
+                                                       |   (HTTP Request trigger)    |
+                                                       |                             |
+                                                       | 1. Wakes up                 |
+                                                       | 2. GET /api/events via ngrok|
+                                                       | 3. Parse & process events   |
+                                                       +----------+------------------+
+                                                                  |
+                                                   +--------------+--------------+
+                                                   |                             |
+                                                   v                             v
+                                          +----------------+           +------------------+
+                                          |   SharePoint   |           |      Email       |
+                                          |  (event list)  |           | (notifications)  |
+                                          +----------------+           +------------------+
 ```
 
-> **POC limitation:** Power Automate polls the REST API on a timer. The API uses an
-> in-memory store — events are lost if the API restarts.
+> **Note:** ngrok is required to expose the local API so Power Automate can reach it.
+> The API uses an in-memory store — events are lost if the API restarts (POC limitation).
 
 ### RabbitMQ vs Azure Service Bus
 
@@ -284,7 +305,7 @@ to fetch the full event list from the API via ngrok:
 
 > Use `?status=` to filter by a specific lifecycle stage, e.g. `?status=BOOKED`, `?status=SHIPPED`, `?status=RECEIVED`.
 
-### Step 2 — Parse the JSON response
+### Step 4 — Parse the JSON response
 
 1. Add a **Parse JSON** action after the HTTP step
 2. Set **Content** to `Body` from the HTTP step
@@ -316,7 +337,7 @@ to fetch the full event list from the API via ngrok:
 }]
 ```
 
-### Step 3 — Loop through events
+### Step 5 — Loop through events
 
 Add an **Apply to each** action, selecting `Body` from the Parse JSON step.
 Inside the loop add the actions below.
@@ -356,7 +377,7 @@ Add a **Send an email (V2)** action inside the loop:
   Exception:[exceptionDetail]
   ```
 
-### Step 4 — Save and test
+### Step 6 — Save and test
 
 1. Click **Save**
 2. Click **Test** → **Manually** → **Run flow**
