@@ -8,66 +8,76 @@ broker for downstream consumers including SharePoint and email notifications.
 
 ## Architecture
 
-### POC (This Simulator)
-
 ```
-+------------------+       +-------------------+       +---------------------------+
-|  Event Simulator | ----> |     RabbitMQ      | ----> |         REST API          |
-|  (TypeScript)    |       |  (topic exchange) |       |        (Express)          |
-+------------------+       +-------------------+       |       :3001/api/*         |
-      |                           |                    |                           |
-  TBX-Oracle                 tbx.events                | 1. Ingests event          |
-  (simulated)            (topic exchange)              | 2. Persists to MongoDB    |
-                                                       | 3. POST webhook trigger   |
-                                                       +------+----------+---------+
-                                                              |          |
-                                                              v          | POST (webhook)
-                                                       +----------+      |
-                                                       | MongoDB  |      |
-                                                       | (Docker) |      v
-                                                       +----------+  +-----------------------------+
-                                                                     |      Power Automate         |
-                                                                     |   (HTTP Request trigger)    |
-                                                                     |                             |
-                                                                     | 1. Wakes up                 |
-                                                                     | 2. GET /api/events via ngrok|
-                                                                     | 3. Parse & process events   |
-                                                                     +----------+------------------+
-                                                                                |
-                                                             +------------------+------------------+
-                                                             |                                     |
-                                                             v                                     v
-                                                    +----------------+                   +------------------+
-                                                    |   SharePoint   |                   |      Email       |
-                                                    |  (event list)  |                   | (notifications)  |
-                                                    +----------------+                   +------------------+
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                              SIMULATOR LAYER                                │
+  │                                                                             │
+  │   ┌──────────────────────────────┐                                          │
+  │   │      Event Simulator         │                                          │
+  │   │      (TypeScript)            │                                          │
+  │   │                              │                                          │
+  │   │  Simulates TBX Oracle ERP    │                                          │
+  │   │  order lifecycle events      │                                          │
+  │   └──────────────┬───────────────┘                                          │
+  └──────────────────┼──────────────────────────────────────────────────────────┘
+                     │ publishes events
+                     ▼
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                              MESSAGE BROKER                                 │
+  │                                                                             │
+  │   ┌──────────────────────────────┐                                          │
+  │   │          RabbitMQ            │                                          │
+  │   │     (topic exchange)         │                                          │
+  │   │                              │                                          │
+  │   │  Exchange : tbx.events       │                                          │
+  │   │  Queue    : tbx.events.all   │                                          │
+  │   │  Queue    : tbx.events.      │                                          │
+  │   │             exceptions       │                                          │
+  │   └──────────────┬───────────────┘                                          │
+  └──────────────────┼──────────────────────────────────────────────────────────┘
+                     │ consumes events
+                     ▼
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                                  API LAYER                                  │
+  │                                                                             │
+  │   ┌──────────────────────────────┐      ┌──────────────────────────────┐   │
+  │   │         REST API             │      │          MongoDB             │   │
+  │   │         (Express)            │ ───► │         (Docker)             │   │
+  │   │                              │      │                              │   │
+  │   │  :3001/api/*                 │      │  db       : tbx              │   │
+  │   │  1. Ingests event            │      │  collection: orderevents     │   │
+  │   │  2. Persists to MongoDB      │      │  Survives API restarts       │   │
+  │   │  3. Fires webhook trigger    │      └──────────────────────────────┘   │
+  │   └──────────────┬───────────────┘                                         │
+  └──────────────────┼─────────────────────────────────────────────────────────┘
+                     │ POST webhook trigger (new event)
+                     │ via ngrok public tunnel
+                     ▼
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                            DOWNSTREAM CONSUMER                              │
+  │                                                                             │
+  │   ┌──────────────────────────────────────────────────────────────────────┐  │
+  │   │                       Power Automate                                 │  │
+  │   │                   (HTTP Request trigger)                             │  │
+  │   │                                                                      │  │
+  │   │   1. Wakes up on webhook POST                                        │  │
+  │   │   2. GET /api/events via ngrok tunnel                                │  │
+  │   │   3. Parses and processes event payload                              │  │
+  │   └────────────────────────────┬─────────────────────────────────────────┘  │
+  │                                │                                             │
+  │              ┌─────────────────┴──────────────────┐                         │
+  │              ▼                                     ▼                         │
+  │   ┌─────────────────────┐             ┌─────────────────────┐               │
+  │   │     SharePoint      │             │        Email        │               │
+  │   │    (event list)     │             │   (notifications)   │               │
+  │   └─────────────────────┘             └─────────────────────┘               │
+  └─────────────────────────────────────────────────────────────────────────────┘
+
+  ngrok tunnel: localhost:3001 ◄──────────────────────────────────► public HTTPS URL
 ```
 
-> **Note:** ngrok is required to expose the local API so Power Automate can reach it.
-> Events are persisted to MongoDB — they survive API restarts.
-
-### RabbitMQ vs Azure Service Bus
-
-RabbitMQ can be hardened for production with disk persistence, manual acknowledgement,
-and a dead-letter queue — making it a viable alternative to Azure Service Bus. The
-trade-off is complexity and ownership vs a managed service.
-
-| Factor | RabbitMQ (this POC) | RabbitMQ (hardened) | Azure Service Bus |
-|---|---|---|---|
-| **Power Automate connector** | None — requires custom REST API | None — requires custom REST API | Native built-in connector |
-| **Message persistence** | In-memory (lost on restart) | Persisted to disk | Persistent until acknowledged |
-| **Data loss risk** | High | Low | Low |
-| **If API restarts** | Events lost | Messages stay in RabbitMQ | Messages stay in Service Bus |
-| **If Power Automate goes down** | Events pile up in memory | Messages held in queue | Messages held in queue |
-| **Dead-letter queue** | Not configured | Yes — failed messages held for retry | Built-in |
-| **Manual acknowledgement** | No | Yes — only clears on confirmed delivery | Yes |
-| **Deduplication** | No | Yes — with persistent store (Redis/SQLite) | Built-in |
-| **Setup complexity** | Medium | High | Low — connect and go |
-| **Ongoing maintenance** | Medium | High | Low — managed service |
-| **Cost** | Infrastructure only | Infrastructure + persistent store | Azure licensing |
-| **Ecosystem lock-in** | None — cloud agnostic | None — cloud agnostic | Microsoft |
-| **Multi-consumer support** | Excellent | Excellent | Good |
-| **Production readiness** | No | Yes | Yes |
+> **ngrok** is required to expose the local API so Power Automate can reach it.
+> Events are persisted to **MongoDB** and survive API restarts.
 
 ## Order Lifecycle Events
 
