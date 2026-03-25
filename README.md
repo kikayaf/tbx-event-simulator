@@ -2,20 +2,49 @@
 
 Proof-of-concept simulation of the TBX order lifecycle event pipeline. Generates
 realistic order events, publishes them through RabbitMQ, and exposes them via a
-REST API -- mirroring the future-state architecture where TBX/Oracle ERP emits
-events through a message broker for downstream consumers.
+REST API for consumption by downstream systems such as Power Automate -- mirroring
+the future-state architecture where TBX/Oracle ERP emits events through a message
+broker for downstream consumers including SharePoint and email notifications.
 
 ## Architecture
 
+### POC (This Simulator)
+
 ```
-+------------------+       +-------------------+       +----------------+
-|  Event Simulator | ----> |     RabbitMQ      | ----> |   REST API     |
-|  (TypeScript)    |       |  (topic exchange) |       |   (Express)    |
-+------------------+       +-------------------+       +----------------+
-      |                           |                          |
-  TBX-Oracle                 tbx.events                 :3001/api/*
++------------------+       +-------------------+       +----------------+       +--------------------+
+|  Event Simulator | ----> |     RabbitMQ      | ----> |   REST API     | <---- |   Power Automate   |
+|  (TypeScript)    |       |  (topic exchange) |       |   (Express)    |       |   (polls /api/*)   |
++------------------+       +-------------------+       +----------------+       +--------------------+
+      |                           |                          |                           |
+  TBX-Oracle                 tbx.events                 :3001/api/*            SharePoint / Email
   (simulated)            (topic exchange)
 ```
+
+> **POC limitation:** Power Automate polls the REST API on a timer. The API uses an
+> in-memory store — events are lost if the API restarts.
+
+### RabbitMQ vs Azure Service Bus
+
+RabbitMQ can be hardened for production with disk persistence, manual acknowledgement,
+and a dead-letter queue — making it a viable alternative to Azure Service Bus. The
+trade-off is complexity and ownership vs a managed service.
+
+| Factor | RabbitMQ (this POC) | RabbitMQ (hardened) | Azure Service Bus |
+|---|---|---|---|
+| **Power Automate connector** | None — requires custom REST API | None — requires custom REST API | Native built-in connector |
+| **Message persistence** | In-memory (lost on restart) | Persisted to disk | Persistent until acknowledged |
+| **Data loss risk** | High | Low | Low |
+| **If API restarts** | Events lost | Messages stay in RabbitMQ | Messages stay in Service Bus |
+| **If Power Automate goes down** | Events pile up in memory | Messages held in queue | Messages held in queue |
+| **Dead-letter queue** | Not configured | Yes — failed messages held for retry | Built-in |
+| **Manual acknowledgement** | No | Yes — only clears on confirmed delivery | Yes |
+| **Deduplication** | No | Yes — with persistent store (Redis/SQLite) | Built-in |
+| **Setup complexity** | Medium | High | Low — connect and go |
+| **Ongoing maintenance** | Medium | High | Low — managed service |
+| **Cost** | Infrastructure only | Infrastructure + persistent store | Azure licensing |
+| **Ecosystem lock-in** | None — cloud agnostic | None — cloud agnostic | Microsoft |
+| **Multi-consumer support** | Excellent | Excellent | Good |
+| **Production readiness** | No | Yes | Yes |
 
 ## Order Lifecycle Events
 
