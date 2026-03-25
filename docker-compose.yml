@@ -22,6 +22,21 @@ services:
     networks:
       - tbx-net
 
+  mongodb:
+    image: mongo:7
+    container_name: tbx-mongodb
+    ports:
+      - "27017:27017"  # MongoDB
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tbx-net
+
   simulator:
     build:
       context: .
@@ -49,14 +64,18 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://tbx_user:tbx_pass@rabbitmq:5672/tbx
+      MONGODB_URL: mongodb://mongodb:27017/tbx
       API_PORT: 3001
     networks:
       - tbx-net
 
 volumes:
   rabbitmq_data:
+  mongodb_data:
 
 networks:
   tbx-net:

@@ -17,6 +17,7 @@
 import "dotenv/config";
 import express, { Request, Response } from "express";
 import { connect, subscribe, disconnect } from "./rabbitmq";
+import { connectDB, disconnectDB, EventModel } from "./db";
 import {
   OrderEvent,
   Order,
@@ -28,9 +29,7 @@ import {
 const PORT               = parseInt(process.env.API_PORT ?? "3000", 10);
 const WEBHOOK_URL        = process.env.POWER_AUTOMATE_WEBHOOK_URL ?? "";
 
-// --- In-memory stores ------------------------------------------------------
-
-const events: OrderEvent[] = [];
+// --- In-memory order aggregation (rebuilt from MongoDB on startup) ----------
 const orders: Map<string, Order> = new Map();
 
 // --- Power Automate webhook ------------------------------------------------
@@ -52,27 +51,36 @@ async function notifyPowerAutomate(event: OrderEvent): Promise<void> {
 
 // --- Event ingestion -------------------------------------------------------
 
-function ingestEvent(event: OrderEvent): void {
-  events.push(event);
-
+function updateOrderCache(event: OrderEvent): void {
   let order = orders.get(event.orderId);
   if (!order) {
     order = {
-      orderId: event.orderId,
-      customerId: event.customerId,
-      customerName: event.customerName,
+      orderId:       event.orderId,
+      customerId:    event.customerId,
+      customerName:  event.customerName,
       currentStatus: event.status,
-      lineItems: event.lineItems,
-      events: [],
-      createdAt: event.timestamp,
-      updatedAt: event.timestamp,
+      lineItems:     event.lineItems,
+      events:        [],
+      createdAt:     event.timestamp,
+      updatedAt:     event.timestamp,
     };
     orders.set(event.orderId, order);
   }
-
   order.currentStatus = event.status;
-  order.updatedAt = event.timestamp;
+  order.updatedAt     = event.timestamp;
   order.events.push(event);
+}
+
+async function ingestEvent(event: OrderEvent): Promise<void> {
+  // Persist to MongoDB (ignore duplicate eventIds)
+  await EventModel.updateOne(
+    { eventId: event.eventId },
+    { $setOnInsert: event },
+    { upsert: true }
+  );
+
+  // Update in-memory order cache
+  updateOrderCache(event);
 
   // Notify Power Automate if webhook is configured
   notifyPowerAutomate(event);
@@ -84,46 +92,49 @@ const app = express();
 app.use(express.json());
 
 // Healthcheck
-app.get("/health", (_req: Request, res: Response) => {
+app.get("/health", async (_req: Request, res: Response) => {
+  const eventCount = await EventModel.countDocuments();
   res.json({
-    status: "ok",
-    uptime: process.uptime(),
-    eventCount: events.length,
+    status:     "ok",
+    uptime:     process.uptime(),
+    eventCount,
     orderCount: orders.size,
   });
 });
 
 // GET /api/events - list all events with optional query filters
-//   ?status=ORDER_CONFIRMED
+//   ?status=BOOKED
 //   ?orderId=ORD-...
 //   ?customerId=CUST-1001
 //   ?limit=50&offset=0
-app.get("/api/events", (req: Request, res: Response) => {
-  let result = [...events];
-
+app.get("/api/events", async (req: Request, res: Response) => {
   const { status, orderId, customerId } = req.query;
-  if (status)     result = result.filter((e) => e.status === status);
-  if (orderId)    result = result.filter((e) => e.orderId === orderId);
-  if (customerId) result = result.filter((e) => e.customerId === customerId);
-
-  // Sort newest first
-  result.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const filter: Record<string, unknown> = {};
+  if (status)     filter.status     = status;
+  if (orderId)    filter.orderId    = orderId;
+  if (customerId) filter.customerId = customerId;
 
   const limit  = Math.min(parseInt(String(req.query.limit ?? "50"), 10) || 50, 500);
   const offset = parseInt(String(req.query.offset ?? "0"), 10) || 0;
-  const paged  = result.slice(offset, offset + limit);
 
-  res.json({
-    total: result.length,
-    limit,
-    offset,
-    data: paged,
-  });
+  const [total, data] = await Promise.all([
+    EventModel.countDocuments(filter),
+    EventModel.find(filter, { _id: 0 })
+      .sort({ timestamp: -1 })
+      .skip(offset)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  res.json({ total, limit, offset, data });
 });
 
 // GET /api/events/:eventId
-app.get("/api/events/:eventId", (req: Request, res: Response) => {
-  const event = events.find((e) => e.eventId === req.params.eventId);
+app.get("/api/events/:eventId", async (req: Request, res: Response) => {
+  const event = await EventModel.findOne(
+    { eventId: req.params.eventId },
+    { _id: 0 }
+  ).lean();
   if (!event) {
     res.status(404).json({ error: "Event not found" });
     return;
@@ -181,18 +192,16 @@ app.get("/api/orders/:orderId/events", (req: Request, res: Response) => {
 });
 
 // GET /api/stats - aggregated statistics
-app.get("/api/stats", (_req: Request, res: Response) => {
+app.get("/api/stats", async (_req: Request, res: Response) => {
   const statusCounts: Record<string, number> = {};
   for (const order of orders.values()) {
     statusCounts[order.currentStatus] = (statusCounts[order.currentStatus] || 0) + 1;
   }
 
-  const exceptionEvents = events.filter((e) => EXCEPTION_STATUSES.includes(e.status));
-  const receivedOrders  = Array.from(orders.values()).filter(
+  const receivedOrders = Array.from(orders.values()).filter(
     (o) => o.currentStatus === OrderStatus.RECEIVED || o.currentStatus === OrderStatus.PARTIALLY_RECEIVED
   );
 
-  // Calculate average lifecycle duration for received orders
   let avgLifecycleMs = 0;
   if (receivedOrders.length > 0) {
     const totalMs = receivedOrders.reduce((sum, o) => {
@@ -201,15 +210,22 @@ app.get("/api/stats", (_req: Request, res: Response) => {
     avgLifecycleMs = totalMs / receivedOrders.length;
   }
 
+  const [totalEvents, exceptionCount, oldest, newest] = await Promise.all([
+    EventModel.countDocuments(),
+    EventModel.countDocuments({ status: { $in: EXCEPTION_STATUSES } }),
+    EventModel.findOne({}, { timestamp: 1, _id: 0 }).sort({ timestamp: 1 }).lean(),
+    EventModel.findOne({}, { timestamp: 1, _id: 0 }).sort({ timestamp: -1 }).lean(),
+  ]);
+
   res.json({
-    totalEvents:    events.length,
+    totalEvents,
     totalOrders:    orders.size,
     ordersByStatus: statusCounts,
-    exceptionCount: exceptionEvents.length,
+    exceptionCount,
     receivedCount:  receivedOrders.length,
     avgLifecycleMs: Math.round(avgLifecycleMs),
-    oldestEvent:    events[0]?.timestamp ?? null,
-    newestEvent:    events[events.length - 1]?.timestamp ?? null,
+    oldestEvent:    oldest?.timestamp ?? null,
+    newestEvent:    newest?.timestamp ?? null,
   });
 });
 
@@ -222,11 +238,22 @@ async function start(): Promise<void> {
   console.log(`  Webhook: ${WEBHOOK_URL || "disabled"}`);
   console.log("==============================================\n");
 
-  await connect();
+  // Connect to MongoDB
+  await connectDB();
 
-  // Subscribe to all events and ingest them
-  await subscribe(QUEUE_ALL, (event) => {
-    ingestEvent(event);
+  // Rebuild in-memory order cache from persisted events
+  const persisted = await EventModel.find({}, { _id: 0 })
+    .sort({ timestamp: 1 })
+    .lean();
+  for (const event of persisted as OrderEvent[]) {
+    updateOrderCache(event);
+  }
+  console.log(`[api] Restored ${persisted.length} events from MongoDB`);
+
+  // Connect to RabbitMQ and subscribe to all events
+  await connect();
+  await subscribe(QUEUE_ALL, async (event) => {
+    await ingestEvent(event);
     console.log(`[api] Ingested ${event.status} for ${event.orderId}`);
   });
 
@@ -246,6 +273,7 @@ async function start(): Promise<void> {
   const shutdown = async () => {
     console.log("\n[api] Shutting down...");
     await disconnect();
+    await disconnectDB();
     process.exit(0);
   };
   process.on("SIGINT", shutdown);

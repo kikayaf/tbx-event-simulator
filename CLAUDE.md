@@ -6,7 +6,8 @@ A proof-of-concept that simulates TBX Oracle order events flowing through Rabbit
 ## Architecture
 - **Event Simulator** (`src/simulator.ts`) -- Generates order events and publishes to RabbitMQ
 - **RabbitMQ** -- Message broker using a topic exchange (`tbx.events`) with routing keys per status
-- **REST API** (`src/api.ts`) -- Express server that consumes events from RabbitMQ, serves them via REST endpoints, and fires a webhook to Power Automate on each new event
+- **REST API** (`src/api.ts`) -- Express server that consumes events from RabbitMQ, persists to MongoDB, serves via REST endpoints, and fires a webhook to Power Automate on each new event
+- **MongoDB** (`src/db.ts`) -- Persistent event store (Docker container); events survive API restarts; order cache rebuilt on startup
 - **Shared types** (`src/types.ts`) -- Event schema, order model, status enum, RabbitMQ constants
 - **RabbitMQ client** (`src/rabbitmq.ts`) -- Connection manager with retry logic, publish/subscribe helpers
 - **ngrok** -- Secure public tunnel exposing the local API (`:3001`) so Power Automate can reach it
@@ -16,17 +17,18 @@ A proof-of-concept that simulates TBX Oracle order events flowing through Rabbit
 - TypeScript, Node.js 20+
 - Express (REST API)
 - amqplib (RabbitMQ client)
+- Mongoose (MongoDB ODM)
 - dotenv (environment variable loading from `.env`)
-- Docker Compose (RabbitMQ + app containers)
+- Docker Compose (RabbitMQ + MongoDB + app containers)
 
 ## Running
 ```bash
 # Full stack via Docker
 docker compose up --build
 
-# Local dev (RabbitMQ in Docker, app code native)
+# Local dev (RabbitMQ + MongoDB in Docker, app code native)
 cp .env.example .env          # configure API_PORT etc.
-docker compose up rabbitmq -d
+docker compose up rabbitmq mongodb -d
 npm install
 npm run dev:all
 ```
@@ -62,7 +64,7 @@ Exception events (terminal): PAYMENT_FAILED | OUT_OF_STOCK | SHIPPING_DELAYED | 
 - Routing keys: `order.BOOKED`, `order.SHIPPED`, `order.RECEIVED`, `order.PARTIALLY_RECEIVED`, `order.DATE_CHANGE`, `order.PAYMENT_FAILED`, `order.OUT_OF_STOCK`, `order.SHIPPING_DELAYED`, `order.ADDRESS_INVALID`, `order.SYSTEM_ERROR`
 
 ## Environment Variables
-See `.env.example` for all configurable values. Key ones: `RABBITMQ_URL`, `SIMULATOR_ORDER_COUNT`, `SIMULATOR_INTERVAL_MS`, `SIMULATOR_EXCEPTION_RATE`, `SIMULATOR_DATE_CHANGE_RATE`, `SIMULATOR_PARTIAL_RECEIVE_RATE`, `API_PORT`, `POWER_AUTOMATE_WEBHOOK_URL`.
+See `.env.example` for all configurable values. Key ones: `RABBITMQ_URL`, `MONGODB_URL`, `SIMULATOR_ORDER_COUNT`, `SIMULATOR_INTERVAL_MS`, `SIMULATOR_EXCEPTION_RATE`, `SIMULATOR_DATE_CHANGE_RATE`, `SIMULATOR_PARTIAL_RECEIVE_RATE`, `API_PORT`, `POWER_AUTOMATE_WEBHOOK_URL`.
 
 ## ngrok (External Access)
 The API runs on `localhost:3001` by default. ngrok creates a public HTTPS tunnel so Power Automate can reach it.

@@ -17,32 +17,34 @@ broker for downstream consumers including SharePoint and email notifications.
 +------------------+       +-------------------+       |       :3001/api/*         |
       |                           |                    |                           |
   TBX-Oracle                 tbx.events                | 1. Ingests event          |
-  (simulated)            (topic exchange)              | 2. POST webhook trigger   |
-                                                       +-------------+-------------+
-                                                                     |
-                                                          POST (webhook trigger)
-                                                                     |
-                                                                     v
-                                                       +-----------------------------+
-                                                       |      Power Automate         |
-                                                       |   (HTTP Request trigger)    |
-                                                       |                             |
-                                                       | 1. Wakes up                 |
-                                                       | 2. GET /api/events via ngrok|
-                                                       | 3. Parse & process events   |
-                                                       +----------+------------------+
-                                                                  |
-                                                   +--------------+--------------+
-                                                   |                             |
-                                                   v                             v
-                                          +----------------+           +------------------+
-                                          |   SharePoint   |           |      Email       |
-                                          |  (event list)  |           | (notifications)  |
-                                          +----------------+           +------------------+
+  (simulated)            (topic exchange)              | 2. Persists to MongoDB    |
+                                                       | 3. POST webhook trigger   |
+                                                       +------+----------+---------+
+                                                              |          |
+                                                              v          | POST (webhook)
+                                                       +----------+      |
+                                                       | MongoDB  |      |
+                                                       | (Docker) |      v
+                                                       +----------+  +-----------------------------+
+                                                                     |      Power Automate         |
+                                                                     |   (HTTP Request trigger)    |
+                                                                     |                             |
+                                                                     | 1. Wakes up                 |
+                                                                     | 2. GET /api/events via ngrok|
+                                                                     | 3. Parse & process events   |
+                                                                     +----------+------------------+
+                                                                                |
+                                                             +------------------+------------------+
+                                                             |                                     |
+                                                             v                                     v
+                                                    +----------------+                   +------------------+
+                                                    |   SharePoint   |                   |      Email       |
+                                                    |  (event list)  |                   | (notifications)  |
+                                                    +----------------+                   +------------------+
 ```
 
 > **Note:** ngrok is required to expose the local API so Power Automate can reach it.
-> The API uses an in-memory store — events are lost if the API restarts (POC limitation).
+> Events are persisted to MongoDB — they survive API restarts.
 
 ### RabbitMQ vs Azure Service Bus
 
@@ -130,8 +132,8 @@ curl http://localhost:3001/api/stats
 ## Local Development (without Docker for app code)
 
 ```bash
-# Start RabbitMQ only
-docker compose up rabbitmq
+# Start RabbitMQ and MongoDB
+docker compose up rabbitmq mongodb -d
 
 # Install dependencies
 npm install
@@ -188,6 +190,7 @@ Set via environment variables or `.env` file (copy `.env.example`):
 | Variable                         | Default | Description                                      |
 |----------------------------------|---------|--------------------------------------------------|
 | `RABBITMQ_URL`                   | (see .env.example) | AMQP connection string              |
+| `MONGODB_URL`                    | `mongodb://localhost:27017/tbx` | MongoDB connection string  |
 | `SIMULATOR_ORDER_COUNT`          | 10      | Number of orders to simulate                     |
 | `SIMULATOR_INTERVAL_MS`          | 3000    | Delay between events (ms)                        |
 | `SIMULATOR_EXCEPTION_RATE`       | 0.10    | Probability of an exception per step             |
@@ -393,7 +396,7 @@ Add a **Send an email (V2)** action inside the loop:
 
 ```
 tbx-event-simulator/
-  docker-compose.yml     -- RabbitMQ + Simulator + API containers
+  docker-compose.yml     -- RabbitMQ + MongoDB + Simulator + API containers
   Dockerfile             -- Multi-stage Node build
   package.json
   tsconfig.json
@@ -401,6 +404,7 @@ tbx-event-simulator/
   src/
     types.ts             -- Event schemas, order model, constants
     rabbitmq.ts          -- Connection manager, publish/subscribe
+    db.ts                -- MongoDB connection and event schema (Mongoose)
     simulator.ts         -- Event generation engine
-    api.ts               -- Express REST API
+    api.ts               -- Express REST API with MongoDB persistence and webhook
 ```
