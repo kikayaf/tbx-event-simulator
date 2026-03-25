@@ -15,7 +15,7 @@
 // ---------------------------------------------------------------------------
 
 import "dotenv/config";
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import { connect, subscribe, disconnect } from "./rabbitmq";
 import { connectDB, disconnectDB, EventModel } from "./db";
 import {
@@ -26,8 +26,11 @@ import {
   QUEUE_ALL,
 } from "./types";
 
-const PORT               = parseInt(process.env.API_PORT ?? "3000", 10);
-const WEBHOOK_URL        = process.env.POWER_AUTOMATE_WEBHOOK_URL ?? "";
+const PORT                = parseInt(process.env.API_PORT ?? "3001", 10);
+const WEBHOOK_URL         = process.env.POWER_AUTOMATE_WEBHOOK_URL ?? "";
+const API_KEY             = process.env.API_KEY ?? "";
+const WEBHOOK_TIMEOUT_MS  = 5_000;
+const WEBHOOK_MAX_RETRIES = 3;
 
 // --- In-memory order aggregation (rebuilt from MongoDB on startup) ----------
 const orders: Map<string, Order> = new Map();
@@ -37,16 +40,40 @@ const orders: Map<string, Order> = new Map();
 async function notifyPowerAutomate(event: OrderEvent): Promise<void> {
   if (!WEBHOOK_URL) return;
 
-  try {
-    const res = await fetch(WEBHOOK_URL, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ event }),
-    });
-    console.log(`[webhook] POST to Power Automate → ${res.status}`);
-  } catch (err) {
-    console.warn(`[webhook] Failed to notify Power Automate:`, err);
+  const delays = [1_000, 5_000, 15_000];
+  for (let attempt = 1; attempt <= WEBHOOK_MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
+    try {
+      const res = await fetch(WEBHOOK_URL, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ event }),
+        signal:  controller.signal,
+      });
+      clearTimeout(timer);
+      console.log(`[webhook] POST to Power Automate → ${res.status} (attempt ${attempt})`);
+      return;
+    } catch (err) {
+      clearTimeout(timer);
+      console.warn(`[webhook] Attempt ${attempt}/${WEBHOOK_MAX_RETRIES} failed:`, (err as Error).message);
+      if (attempt < WEBHOOK_MAX_RETRIES) {
+        await new Promise((r) => setTimeout(r, delays[attempt - 1]));
+      }
+    }
   }
+  console.error("[webhook] All retry attempts exhausted — event not delivered to Power Automate");
+}
+
+// --- API key authentication ------------------------------------------------
+
+function requireApiKey(req: Request, res: Response, next: NextFunction): void {
+  if (!API_KEY) { next(); return; }
+  if (req.headers["x-api-key"] !== API_KEY) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  next();
 }
 
 // --- Event ingestion -------------------------------------------------------
@@ -82,14 +109,15 @@ async function ingestEvent(event: OrderEvent): Promise<void> {
   // Update in-memory order cache
   updateOrderCache(event);
 
-  // Notify Power Automate if webhook is configured
-  notifyPowerAutomate(event);
+  // Notify Power Automate if webhook is configured (awaited — fires after MongoDB confirms)
+  await notifyPowerAutomate(event);
 }
 
 // --- Express app -----------------------------------------------------------
 
 const app = express();
 app.use(express.json());
+app.use("/api", requireApiKey);
 
 // Healthcheck
 app.get("/health", async (_req: Request, res: Response) => {
@@ -236,6 +264,7 @@ async function start(): Promise<void> {
   console.log("  AT&T TBX Event API");
   console.log(`  Port:    ${PORT}`);
   console.log(`  Webhook: ${WEBHOOK_URL || "disabled"}`);
+  console.log(`  API Key: ${API_KEY ? "enabled" : "disabled (set API_KEY to enable)"}`);
   console.log("==============================================\n");
 
   // Connect to MongoDB

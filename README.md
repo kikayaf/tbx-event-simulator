@@ -6,6 +6,8 @@ REST API for consumption by downstream systems such as Power Automate -- mirrori
 the future-state architecture where TBX/Oracle ERP emits events through a message
 broker for downstream consumers including SharePoint and email notifications.
 
+See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+
 ## Architecture
 
 <p align="center">

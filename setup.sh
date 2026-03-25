@@ -60,7 +60,7 @@ echo "  Local dev:"
 echo "    docker compose up rabbitmq"
 echo "    npm run dev:all"
 echo ""
-API_PORT=$(grep '^API_PORT=' .env 2>/dev/null | cut -d= -f2 || echo 3000)
+API_PORT=$(grep '^API_PORT=' .env 2>/dev/null | cut -d= -f2 || echo 3001)
 echo "  API will be at http://localhost:${API_PORT}"
 echo "  RabbitMQ UI at http://localhost:15672"
 echo "==========================================="

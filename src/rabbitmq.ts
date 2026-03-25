@@ -14,6 +14,8 @@ import {
 } from "./types";
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL ?? "amqp://tbx_user:tbx_pass@localhost:5672/tbx";
+const DLX_NAME     = "tbx.events.dlx";
+const DLQ_NAME     = "tbx.events.dead";
 
 let connModel: Awaited<ReturnType<typeof amqplib.connect>> | null = null;
 let channel: Channel | null = null;
@@ -33,8 +35,16 @@ export async function connect(maxRetries = 10): Promise<Channel> {
       // Declare a topic exchange so consumers can filter by routing key
       await ch.assertExchange(EXCHANGE_NAME, "topic", { durable: true });
 
-      // Queue that receives ALL events
-      await ch.assertQueue(QUEUE_ALL, { durable: true });
+      // Dead-letter exchange and queue — receives messages rejected by nack
+      await ch.assertExchange(DLX_NAME, "fanout", { durable: true });
+      await ch.assertQueue(DLQ_NAME, { durable: true });
+      await ch.bindQueue(DLQ_NAME, DLX_NAME, "");
+
+      // Queue that receives ALL events (routes failures to DLX instead of dropping)
+      await ch.assertQueue(QUEUE_ALL, {
+        durable: true,
+        arguments: { "x-dead-letter-exchange": DLX_NAME },
+      });
       await ch.bindQueue(QUEUE_ALL, EXCHANGE_NAME, `${ROUTING_KEY_PREFIX}.#`);
 
       // Queue that receives exception events (one binding per exception status)
