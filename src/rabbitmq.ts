@@ -7,8 +7,9 @@ import type { Channel } from "amqplib";
 import {
   EXCHANGE_NAME,
   QUEUE_ALL,
-  QUEUE_ERRORS,
+  QUEUE_EXCEPTIONS,
   ROUTING_KEY_PREFIX,
+  EXCEPTION_STATUSES,
   OrderEvent,
 } from "./types";
 
@@ -36,9 +37,11 @@ export async function connect(maxRetries = 10): Promise<Channel> {
       await ch.assertQueue(QUEUE_ALL, { durable: true });
       await ch.bindQueue(QUEUE_ALL, EXCHANGE_NAME, `${ROUTING_KEY_PREFIX}.#`);
 
-      // Queue that receives only error events
-      await ch.assertQueue(QUEUE_ERRORS, { durable: true });
-      await ch.bindQueue(QUEUE_ERRORS, EXCHANGE_NAME, `${ROUTING_KEY_PREFIX}.ERROR`);
+      // Queue that receives exception events (one binding per exception status)
+      await ch.assertQueue(QUEUE_EXCEPTIONS, { durable: true });
+      for (const status of EXCEPTION_STATUSES) {
+        await ch.bindQueue(QUEUE_EXCEPTIONS, EXCHANGE_NAME, `${ROUTING_KEY_PREFIX}.${status}`);
+      }
 
       console.log("[rabbitmq] Connected and topology ready.");
       return ch;

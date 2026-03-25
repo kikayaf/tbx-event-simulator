@@ -47,19 +47,20 @@ npm run dev:all
 - `GET /api/orders/:orderId/events` -- Events for an order
 - `GET /api/stats` -- Aggregate statistics
 
-## Order Lifecycle (Happy Path)
-QUOTE_CREATED -> QUOTE_APPROVED -> ORDER_CREATED -> ORDER_CONFIRMED -> PROVISIONING_STARTED -> PROVISIONING_COMPLETE -> SHIPPED -> DELIVERED
-
-Branch events: ERROR and CANCELLED can occur at eligible stages.
+## Order Lifecycle
+Core milestone events (real-time): BOOKED -> SHIPPED -> RECEIVED
+Branch events: PARTIALLY_RECEIVED (partial fulfilment, branch from RECEIVED)
+Digest batch event (6-hour): DATE_CHANGE (fires before SHIPPED)
+Exception events (terminal): PAYMENT_FAILED | OUT_OF_STOCK | SHIPPING_DELAYED | ADDRESS_INVALID | SYSTEM_ERROR
 
 ## RabbitMQ Topology
 - Exchange: `tbx.events` (topic)
 - Queue: `tbx.events.all` (bound to `order.#`)
-- Queue: `tbx.events.errors` (bound to `order.ERROR`)
-- Routing keys: `order.QUOTE_CREATED`, `order.SHIPPED`, `order.ERROR`, etc.
+- Queue: `tbx.events.exceptions` (bound to each exception routing key individually)
+- Routing keys: `order.BOOKED`, `order.SHIPPED`, `order.RECEIVED`, `order.PARTIALLY_RECEIVED`, `order.DATE_CHANGE`, `order.PAYMENT_FAILED`, `order.OUT_OF_STOCK`, `order.SHIPPING_DELAYED`, `order.ADDRESS_INVALID`, `order.SYSTEM_ERROR`
 
 ## Environment Variables
-See `.env.example` for all configurable values. Key ones: `RABBITMQ_URL`, `SIMULATOR_ORDER_COUNT`, `SIMULATOR_INTERVAL_MS`, `API_PORT`.
+See `.env.example` for all configurable values. Key ones: `RABBITMQ_URL`, `SIMULATOR_ORDER_COUNT`, `SIMULATOR_INTERVAL_MS`, `SIMULATOR_EXCEPTION_RATE`, `SIMULATOR_DATE_CHANGE_RATE`, `SIMULATOR_PARTIAL_RECEIVE_RATE`, `API_PORT`.
 
 ## Conventions
 - All source in `src/`, compiled output in `dist/`

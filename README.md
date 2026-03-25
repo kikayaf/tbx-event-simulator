@@ -12,25 +12,49 @@ events through a message broker for downstream consumers.
 |  Event Simulator | ----> |     RabbitMQ      | ----> |   REST API     |
 |  (TypeScript)    |       |  (topic exchange) |       |   (Express)    |
 +------------------+       +-------------------+       +----------------+
-                                                              |
-                                                         :3001/api/*
+      |                           |                          |
+  TBX-Oracle                 tbx.events                 :3001/api/*
+  (simulated)            (topic exchange)
 ```
 
 ## Order Lifecycle Events
 
-The simulator produces events that follow the TBX order lifecycle:
+Event types are aligned with the AT&T TBX Oracle system as confirmed by
+Barry Hammon and the AT&T discovery docs, architecture files, and technical spec.
 
-1. `QUOTE_CREATED` -- ISR creates a new quote
-2. `QUOTE_APPROVED` -- Quote approved / pricing validated
-3. `ORDER_CREATED` -- Order submitted to TBX Oracle
-4. `ORDER_CONFIRMED` -- TBX confirms receipt and validation
-5. `PROVISIONING_STARTED` -- Provisioning/fulfillment begins
-6. `PROVISIONING_COMPLETE` -- Provisioning finished
-7. `SHIPPED` -- Order shipped with carrier
-8. `DELIVERED` -- Order delivered to customer
+### Core Milestone Events (real-time)
 
-Branch events: `ERROR` (8% default) and `CANCELLED` (5% default) can occur
-at any eligible stage.
+| Event | Timing | Payload Highlights |
+|---|---|---|
+| `BOOKED` | Real-time | Full order metadata: PO number, quote number, customer info, line items, order total |
+| `SHIPPED` | Real-time | Tracking number, carrier, serial numbers, estimated ship date, estimated delivery date |
+| `RECEIVED` | Real-time | Receipt date, received quantity, confirmed quantity |
+| `PARTIALLY_RECEIVED` | Real-time | Receipt date, partial received quantity vs confirmed total |
+
+### Digest Batch Event (6-hour intervals)
+
+| Event | Timing | Payload Highlights |
+|---|---|---|
+| `DATE_CHANGE` | 6-hour digest | Previous/new estimated ship date, previous/new estimated arrival date |
+
+### Exception Events
+
+| Event | Context |
+|---|---|
+| `PAYMENT_FAILED` | Payment processing error |
+| `OUT_OF_STOCK` | Inventory sync mismatch |
+| `SHIPPING_DELAYED` | Carrier or fulfillment delay |
+| `ADDRESS_INVALID` | Customer address validation failure |
+| `SYSTEM_ERROR` | Integration or gateway failure |
+
+### Simulation Flow
+
+```
+BOOKED ──[DATE_CHANGE?]──> SHIPPED ──> RECEIVED
+   │                          │            └─> PARTIALLY_RECEIVED (15% branch)
+   └─> Exception (10% chance per step):
+       PAYMENT_FAILED | ADDRESS_INVALID | OUT_OF_STOCK | SHIPPING_DELAYED | SYSTEM_ERROR
+```
 
 ## Prerequisites
 
@@ -101,21 +125,22 @@ Events and orders endpoints support:
 
 - **Exchange:** `tbx.events` (topic)
 - **Queue:** `tbx.events.all` -- receives all events (bound to `order.#`)
-- **Queue:** `tbx.events.errors` -- receives error events only (bound to `order.ERROR`)
-- **Routing keys:** `order.QUOTE_CREATED`, `order.ORDER_CONFIRMED`, `order.ERROR`, etc.
+- **Queue:** `tbx.events.exceptions` -- receives exception events only (bound to each exception routing key)
+- **Routing keys:** `order.BOOKED`, `order.SHIPPED`, `order.RECEIVED`, `order.PARTIALLY_RECEIVED`, `order.DATE_CHANGE`, `order.PAYMENT_FAILED`, `order.OUT_OF_STOCK`, `order.SHIPPING_DELAYED`, `order.ADDRESS_INVALID`, `order.SYSTEM_ERROR`
 
 ## Configuration
 
 Set via environment variables or `.env` file (copy `.env.example`):
 
-| Variable                 | Default | Description                        |
-|--------------------------|---------|------------------------------------|
-| `RABBITMQ_URL`           | (see .env.example) | AMQP connection string  |
-| `SIMULATOR_ORDER_COUNT`  | 10      | Number of orders to simulate       |
-| `SIMULATOR_INTERVAL_MS`  | 3000    | Delay between events (ms)          |
-| `SIMULATOR_ERROR_RATE`   | 0.08    | Probability of error per step      |
-| `SIMULATOR_CANCEL_RATE`  | 0.05    | Probability of cancellation        |
-| `API_PORT`               | 3001    | REST API listen port               |
+| Variable                         | Default | Description                                      |
+|----------------------------------|---------|--------------------------------------------------|
+| `RABBITMQ_URL`                   | (see .env.example) | AMQP connection string              |
+| `SIMULATOR_ORDER_COUNT`          | 10      | Number of orders to simulate                     |
+| `SIMULATOR_INTERVAL_MS`          | 3000    | Delay between events (ms)                        |
+| `SIMULATOR_EXCEPTION_RATE`       | 0.10    | Probability of an exception per step             |
+| `SIMULATOR_DATE_CHANGE_RATE`     | 0.20    | Probability of a DATE_CHANGE before SHIPPED      |
+| `SIMULATOR_PARTIAL_RECEIVE_RATE` | 0.15    | Probability of PARTIALLY_RECEIVED vs RECEIVED    |
+| `API_PORT`                       | 3001    | REST API listen port                             |
 
 ## Exposing the API Externally with ngrok
 
@@ -201,9 +226,24 @@ Inside your existing flow, add a **HTTP** action at the point where you want eve
   "eventId": "e1",
   "orderId": "ORD-1773773838793-0001",
   "customerId": "CUST-1001",
-  "status": "QUOTE_CREATED",
+  "customerName": "AT&T Corporate HQ",
+  "status": "BOOKED",
   "timestamp": "2026-03-24T22:32:16.759Z",
-  "sourceSystem": "TBX-Oracle"
+  "source": "TBX-Oracle",
+  "poNumber": "PO-ATT-482910",
+  "quoteNumber": "QT-839201",
+  "orderTotal": 12400.00,
+  "trackingNumber": null,
+  "carrier": null,
+  "receiptDate": null,
+  "receivedQuantity": null,
+  "confirmedQuantity": null,
+  "exceptionDetail": null,
+  "exceptionCode": null,
+  "lineItems": [
+    { "sku": "CSC-ISR4451", "description": "Cisco ISR 4451-X Router", "quantity": 1, "unitPrice": 12400.00 }
+  ],
+  "metadata": { "region": "US-EAST", "simulatedAt": "2026-03-24T22:32:16.759Z" }
 }]
 ```
 

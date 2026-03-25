@@ -21,6 +21,7 @@ import {
   OrderEvent,
   Order,
   OrderStatus,
+  EXCEPTION_STATUSES,
   QUEUE_ALL,
 } from "./types";
 
@@ -165,29 +166,29 @@ app.get("/api/stats", (_req: Request, res: Response) => {
     statusCounts[order.currentStatus] = (statusCounts[order.currentStatus] || 0) + 1;
   }
 
-  const errorEvents = events.filter((e) => e.status === OrderStatus.ERROR);
-  const deliveredOrders = Array.from(orders.values()).filter(
-    (o) => o.currentStatus === OrderStatus.DELIVERED
+  const exceptionEvents = events.filter((e) => EXCEPTION_STATUSES.includes(e.status));
+  const receivedOrders  = Array.from(orders.values()).filter(
+    (o) => o.currentStatus === OrderStatus.RECEIVED || o.currentStatus === OrderStatus.PARTIALLY_RECEIVED
   );
 
-  // Calculate average lifecycle duration for delivered orders
+  // Calculate average lifecycle duration for received orders
   let avgLifecycleMs = 0;
-  if (deliveredOrders.length > 0) {
-    const totalMs = deliveredOrders.reduce((sum, o) => {
+  if (receivedOrders.length > 0) {
+    const totalMs = receivedOrders.reduce((sum, o) => {
       return sum + (new Date(o.updatedAt).getTime() - new Date(o.createdAt).getTime());
     }, 0);
-    avgLifecycleMs = totalMs / deliveredOrders.length;
+    avgLifecycleMs = totalMs / receivedOrders.length;
   }
 
   res.json({
-    totalEvents: events.length,
-    totalOrders: orders.size,
+    totalEvents:    events.length,
+    totalOrders:    orders.size,
     ordersByStatus: statusCounts,
-    errorCount: errorEvents.length,
-    deliveredCount: deliveredOrders.length,
+    exceptionCount: exceptionEvents.length,
+    receivedCount:  receivedOrders.length,
     avgLifecycleMs: Math.round(avgLifecycleMs),
-    oldestEvent: events[0]?.timestamp ?? null,
-    newestEvent: events[events.length - 1]?.timestamp ?? null,
+    oldestEvent:    events[0]?.timestamp ?? null,
+    newestEvent:    events[events.length - 1]?.timestamp ?? null,
   });
 });
 
