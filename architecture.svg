@@ -1,0 +1,274 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1720" width="900" height="1720" font-family="'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <!-- Arrow: downward (triangle points along +x axis; orient=auto rotates to line direction) -->
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ffffff" />
+    </marker>
+    <!-- Arrow: rightward -->
+    <marker id="arrowRight" markerWidth="8" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0, 8 3.5, 0 7" fill="#ffffff" />
+    </marker>
+
+    <!-- ── ICONS ────────────────────────────────────────────────── -->
+
+    <!-- Terminal / Node.js (Event Simulator) -->
+    <symbol id="icon-terminal" viewBox="0 0 24 24">
+      <rect x="2" y="3" width="20" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <polyline points="8,9 12,13 8,17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <line x1="13" y1="17" x2="17" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Rabbit (RabbitMQ) -->
+    <symbol id="icon-rabbit" viewBox="0 0 24 24">
+      <ellipse cx="8.5" cy="7" rx="2.5" ry="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <ellipse cx="15.5" cy="7" rx="2.5" ry="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M5 11 C4 13.5 4.5 18 9 19 L15 19 C19.5 18 20 13.5 19 11 Z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="9.5" cy="15" r="1.2" fill="currentColor"/>
+      <circle cx="14.5" cy="15" r="1.2" fill="currentColor"/>
+      <path d="M10 17.5 Q12 19 14 17.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Server stack (REST API) -->
+    <symbol id="icon-server" viewBox="0 0 24 24">
+      <rect x="2" y="2" width="20" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="2" y="14" width="20" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="6" cy="6" r="1.5" fill="currentColor"/>
+      <circle cx="6" cy="18" r="1.5" fill="currentColor"/>
+      <line x1="10" y1="6" x2="18" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="10" y1="18" x2="18" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Leaf (MongoDB) -->
+    <symbol id="icon-mongodb" viewBox="0 0 24 24">
+      <path d="M12 2 C10 5.5 7 9.5 7 14 C7 17.9 9.2 21 12 21 C14.8 21 17 17.9 17 14 C17 9.5 14 5.5 12 2 Z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="9.5" y1="13" x2="14.5" y2="13" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.6"/>
+    </symbol>
+
+    <!-- Shield + check (ngrok secure tunnel) -->
+    <symbol id="icon-shield" viewBox="0 0 24 24">
+      <path d="M12 2 L4 6 L4 12 C4 16.4 7.4 20.5 12 22 C16.6 20.5 20 16.4 20 12 L20 6 Z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <polyline points="9,12 11,14 15,10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- Lightning bolt (Power Automate) -->
+    <symbol id="icon-lightning" viewBox="0 0 24 24">
+      <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- Nodes / share (SharePoint) -->
+    <symbol id="icon-sharepoint" viewBox="0 0 24 24">
+      <circle cx="18" cy="5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="6" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="18" cy="19" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="8.4" y1="10.9" x2="15.6" y2="6.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="8.4" y1="13.1" x2="15.6" y2="17.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Envelope (Email / Outlook) -->
+    <symbol id="icon-email" viewBox="0 0 24 24">
+      <rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <polyline points="2,4 12,13 22,4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       BACKGROUND
+  ══════════════════════════════════════════════════════════════════════ -->
+  <rect width="900" height="1720" fill="#0d1117"/>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       LAYER 1 — SIMULATOR   y=30, h=160
+  ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="30" y="30" width="840" height="160" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <rect x="30" y="30" width="840" height="36" rx="12" fill="rgba(74,158,255,0.18)"/>
+  <rect x="30" y="54"  width="840" height="12" fill="rgba(74,158,255,0.18)"/>
+  <text x="450" y="53" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="2">SIMULATOR</text>
+
+  <!-- Event Simulator box -->
+  <rect x="260" y="74" width="380" height="102" rx="8" fill="#1c2128" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+  <rect x="260" y="74" width="3"   height="102" rx="2" fill="#4a9eff"/>
+  <!-- icon + title (group center x=450) -->
+  <!-- "Event Simulator" ~15 chars × 8.5 = 127px → group=22+6+127=155 → left=450-77=373 -->
+  <use href="#icon-terminal" x="373" y="81" width="22" height="22" color="#4a9eff"/>
+  <text x="401" y="97" text-anchor="start" font-size="15" font-weight="700" fill="#ffffff">Event Simulator</text>
+  <text x="450" y="116" text-anchor="middle" font-size="13" fill="#8b949e">(TypeScript / Node.js)</text>
+  <text x="450" y="138" text-anchor="middle" font-size="13" fill="#c9d1d9">Simulates TBX Oracle ERP order lifecycle events</text>
+
+  <!-- ── GAP 1  y=190→250 ── -->
+  <line x1="450" y1="192" x2="450" y2="246" stroke="#ffffff" stroke-width="2" marker-end="url(#arrowDown)"/>
+  <rect x="357" y="210" width="186" height="24" rx="4" fill="#161b22"/>
+  <text x="450" y="227" text-anchor="middle" font-size="13" fill="#58a6ff">publishes events</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       LAYER 2 — MESSAGE BROKER   y=250, h=180
+  ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="30" y="250" width="840" height="180" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <rect x="30" y="250" width="840" height="36" rx="12" fill="rgba(255,102,0,0.22)"/>
+  <rect x="30" y="274" width="840" height="12"  fill="rgba(255,102,0,0.22)"/>
+  <text x="450" y="273" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="2">MESSAGE BROKER</text>
+
+  <!-- RabbitMQ box -->
+  <rect x="240" y="294" width="420" height="124" rx="8" fill="#1c2128" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+  <rect x="240" y="294" width="3"   height="124" rx="2" fill="#FF6600"/>
+  <!-- "RabbitMQ" ~8 chars → group=22+6+68=96 → left=451-48=403 -->
+  <use href="#icon-rabbit" x="403" y="302" width="22" height="22" color="#FF6600"/>
+  <text x="431" y="317" text-anchor="start" font-size="15" font-weight="700" fill="#ffffff">RabbitMQ</text>
+  <text x="451" y="336" text-anchor="middle" font-size="13" fill="#8b949e">(topic exchange)</text>
+  <text x="451" y="358" text-anchor="middle" font-size="13" fill="#c9d1d9" font-family="'Courier New', Courier, monospace">Exchange : tbx.events</text>
+  <text x="451" y="378" text-anchor="middle" font-size="13" fill="#c9d1d9" font-family="'Courier New', Courier, monospace">Queue    : tbx.events.all</text>
+  <text x="451" y="398" text-anchor="middle" font-size="13" fill="#c9d1d9" font-family="'Courier New', Courier, monospace">Queue    : tbx.events.exceptions</text>
+
+  <!-- ── GAP 2  y=430→490 ── -->
+  <line x1="450" y1="432" x2="450" y2="486" stroke="#ffffff" stroke-width="2" marker-end="url(#arrowDown)"/>
+  <rect x="358" y="450" width="184" height="24" rx="4" fill="#161b22"/>
+  <text x="450" y="467" text-anchor="middle" font-size="13" fill="#58a6ff">consumes events</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       LAYER 3 — API & PERSISTENCE   y=490, h=200
+  ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="30" y="490" width="840" height="200" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <rect x="30" y="490" width="840" height="36" rx="12" fill="rgba(0,120,212,0.22)"/>
+  <rect x="30" y="514" width="840" height="12"  fill="rgba(0,120,212,0.22)"/>
+  <text x="450" y="513" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="2">API &amp; PERSISTENCE</text>
+
+  <!-- REST API box (left)  x=95, w=340, center=265 -->
+  <rect x="95"  y="514" width="340" height="162" rx="8" fill="#1c2128" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+  <rect x="95"  y="514" width="3"   height="162" rx="2" fill="#0078d4"/>
+  <!-- "REST API" ~8 chars → group=96 → left=265-48=217 -->
+  <use href="#icon-server" x="217" y="522" width="22" height="22" color="#0078d4"/>
+  <text x="245" y="538" text-anchor="start" font-size="15" font-weight="700" fill="#ffffff">REST API</text>
+  <text x="265" y="557" text-anchor="middle" font-size="13" fill="#8b949e">(Express / Node.js)</text>
+  <text x="265" y="580" text-anchor="middle" font-size="13" fill="#c9d1d9" font-family="'Courier New', Courier, monospace">Port: 3001</text>
+  <text x="265" y="600" text-anchor="middle" font-size="13" fill="#c9d1d9">Ingests events</text>
+  <text x="265" y="620" text-anchor="middle" font-size="13" fill="#c9d1d9">Fires webhook trigger</text>
+  <text x="265" y="640" text-anchor="middle" font-size="13" fill="#c9d1d9">Serves REST endpoints</text>
+  <text x="265" y="660" text-anchor="middle" font-size="13" fill="#c9d1d9">Rebuilds order cache on start</text>
+
+  <!-- MongoDB box (right)  x=465, w=280, center=605 -->
+  <rect x="465" y="514" width="280" height="162" rx="8" fill="#1c2128" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+  <rect x="465" y="514" width="3"   height="162" rx="2" fill="#47A248"/>
+  <!-- "MongoDB" ~7 chars → group=87 → left=605-43=562 -->
+  <use href="#icon-mongodb" x="562" y="522" width="22" height="22" color="#47A248"/>
+  <text x="590" y="538" text-anchor="start" font-size="15" font-weight="700" fill="#ffffff">MongoDB</text>
+  <text x="605" y="557" text-anchor="middle" font-size="13" fill="#8b949e">(Docker)</text>
+  <text x="605" y="580" text-anchor="middle" font-size="13" fill="#c9d1d9" font-family="'Courier New', Courier, monospace">Database   : tbx</text>
+  <text x="605" y="600" text-anchor="middle" font-size="13" fill="#c9d1d9" font-family="'Courier New', Courier, monospace">Collection : orderevents</text>
+  <text x="605" y="620" text-anchor="middle" font-size="13" fill="#c9d1d9">Persists across restarts</text>
+
+  <!-- Horizontal arrow REST API → MongoDB -->
+  <rect x="425" y="582" width="52" height="18" rx="3" fill="#161b22"/>
+  <text x="451" y="595" text-anchor="middle" font-size="11" fill="#58a6ff">persist</text>
+  <line x1="437" y1="607" x2="460" y2="607" stroke="#ffffff" stroke-width="2" marker-end="url(#arrowRight)"/>
+
+  <!-- ── GAP 3  y=690→750 ── -->
+  <line x1="450" y1="692" x2="450" y2="746" stroke="#ffffff" stroke-width="2" marker-end="url(#arrowDown)"/>
+  <rect x="279" y="709" width="342" height="24" rx="4" fill="#161b22"/>
+  <text x="450" y="726" text-anchor="middle" font-size="13" fill="#58a6ff">POST webhook · via ngrok tunnel</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       LAYER 4 — TUNNEL   y=750, h=140
+  ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="30" y="750" width="840" height="140" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <rect x="30" y="750" width="840" height="36" rx="12" fill="rgba(0,180,216,0.22)"/>
+  <rect x="30" y="774" width="840" height="12"  fill="rgba(0,180,216,0.22)"/>
+  <text x="450" y="773" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="2">TUNNEL</text>
+
+  <!-- ngrok box -->
+  <rect x="260" y="774" width="380" height="102" rx="8" fill="#1c2128" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+  <rect x="260" y="774" width="3"   height="102" rx="2" fill="#00b4d8"/>
+  <!-- "ngrok" ~5 chars → group=70 → left=450-35=415 -->
+  <use href="#icon-shield" x="415" y="782" width="22" height="22" color="#00b4d8"/>
+  <text x="443" y="797" text-anchor="start" font-size="15" font-weight="700" fill="#ffffff">ngrok</text>
+  <text x="450" y="817" text-anchor="middle" font-size="13" fill="#c9d1d9">Secure public HTTPS tunnel</text>
+  <text x="450" y="837" text-anchor="middle" font-size="13" fill="#c9d1d9">Exposes localhost:3001 publicly</text>
+  <text x="450" y="857" text-anchor="middle" font-size="13" fill="#c9d1d9" font-family="'Courier New', Courier, monospace">Inspector : http://localhost:4040</text>
+
+  <!-- ── GAP 4  y=890→950 ── -->
+  <line x1="450" y1="892" x2="450" y2="946" stroke="#ffffff" stroke-width="2" marker-end="url(#arrowDown)"/>
+  <rect x="265" y="909" width="370" height="24" rx="4" fill="#161b22"/>
+  <text x="450" y="926" text-anchor="middle" font-size="13" fill="#58a6ff">GET /api/events · via ngrok URL</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       LAYER 5 — DOWNSTREAM CONSUMER   y=950, h=560
+  ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="30" y="950" width="840" height="560" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <rect x="30" y="950" width="840" height="36" rx="12" fill="rgba(116,39,116,0.28)"/>
+  <rect x="30" y="974" width="840" height="12"  fill="rgba(116,39,116,0.28)"/>
+  <text x="450" y="973" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="2">DOWNSTREAM CONSUMER</text>
+
+  <!-- Power Automate box -->
+  <rect x="240" y="980" width="420" height="170" rx="8" fill="#1c2128" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+  <rect x="240" y="980" width="3"   height="170" rx="2" fill="#742774"/>
+  <!-- "Power Automate" ~14 chars → group=147 → left=450-73=377 -->
+  <use href="#icon-lightning" x="377" y="988" width="22" height="22" color="#742774"/>
+  <text x="405" y="1004" text-anchor="start" font-size="15" font-weight="700" fill="#ffffff">Power Automate</text>
+  <text x="450" y="1023" text-anchor="middle" font-size="13" fill="#8b949e">(HTTP Request trigger)</text>
+  <text x="450" y="1048" text-anchor="middle" font-size="13" fill="#c9d1d9">1. Wakes up on webhook POST</text>
+  <text x="450" y="1070" text-anchor="middle" font-size="13" fill="#c9d1d9">2. Fetches events via ngrok</text>
+  <text x="450" y="1092" text-anchor="middle" font-size="13" fill="#c9d1d9">3. Processes and routes events</text>
+  <text x="450" y="1114" text-anchor="middle" font-size="13" fill="#8b949e">Writes to SharePoint · Sends email notifications</text>
+  <text x="450" y="1134" text-anchor="middle" font-size="13" fill="#8b949e">Stores event history for audit trail</text>
+
+  <!-- Diagonal arrows: Power Automate → SharePoint and Email -->
+  <!-- SharePoint center x=295, Email center x=605, PA bottom ~y=1152 -->
+  <line x1="360" y1="1152" x2="295" y2="1208" stroke="#ffffff" stroke-width="2" marker-end="url(#arrowDown)"/>
+  <line x1="540" y1="1152" x2="605" y2="1208" stroke="#ffffff" stroke-width="2" marker-end="url(#arrowDown)"/>
+
+  <!-- SharePoint box  x=185, w=220, center=295 -->
+  <rect x="185" y="1208" width="220" height="120" rx="8" fill="#1c2128" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+  <rect x="185" y="1208" width="3"   height="120" rx="2" fill="#036c70"/>
+  <!-- "SharePoint" ~10 chars → group=113 → left=295-56=239 -->
+  <use href="#icon-sharepoint" x="239" y="1216" width="22" height="22" color="#036c70"/>
+  <text x="267" y="1232" text-anchor="start" font-size="15" font-weight="700" fill="#ffffff">SharePoint</text>
+  <text x="295" y="1252" text-anchor="middle" font-size="13" fill="#8b949e">Microsoft 365</text>
+  <text x="295" y="1274" text-anchor="middle" font-size="13" fill="#c9d1d9">Writes event list</text>
+  <text x="295" y="1294" text-anchor="middle" font-size="13" fill="#c9d1d9">Stores event history</text>
+
+  <!-- Email / Outlook box  x=495, w=220, center=605 -->
+  <rect x="495" y="1208" width="220" height="120" rx="8" fill="#1c2128" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+  <rect x="495" y="1208" width="3"   height="120" rx="2" fill="#0078d4"/>
+  <!-- "Email / Outlook" ~15 chars → group=155 → left=605-77=528 -->
+  <use href="#icon-email" x="528" y="1216" width="22" height="22" color="#0078d4"/>
+  <text x="556" y="1232" text-anchor="start" font-size="15" font-weight="700" fill="#ffffff">Email / Outlook</text>
+  <text x="605" y="1252" text-anchor="middle" font-size="13" fill="#8b949e">Microsoft 365</text>
+  <text x="605" y="1274" text-anchor="middle" font-size="13" fill="#c9d1d9">Sends notifications</text>
+  <text x="605" y="1294" text-anchor="middle" font-size="13" fill="#c9d1d9">Order status alerts</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       FOOTER LEGEND   y=1550
+  ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="30" y="1550" width="840" height="148" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <text x="450" y="1574" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="1">COMPONENT LEGEND</text>
+
+  <!-- Row 1 -->
+  <use href="#icon-terminal"   x="56"  y="1582" width="16" height="16" color="#4a9eff"/>
+  <text x="78"  y="1595" font-size="13" fill="#c9d1d9">Event Simulator</text>
+
+  <use href="#icon-rabbit"     x="206" y="1582" width="16" height="16" color="#FF6600"/>
+  <text x="228" y="1595" font-size="13" fill="#c9d1d9">RabbitMQ</text>
+
+  <use href="#icon-server"     x="346" y="1582" width="16" height="16" color="#0078d4"/>
+  <text x="368" y="1595" font-size="13" fill="#c9d1d9">REST API</text>
+
+  <use href="#icon-mongodb"    x="476" y="1582" width="16" height="16" color="#47A248"/>
+  <text x="498" y="1595" font-size="13" fill="#c9d1d9">MongoDB</text>
+
+  <use href="#icon-shield"     x="606" y="1582" width="16" height="16" color="#00b4d8"/>
+  <text x="628" y="1595" font-size="13" fill="#c9d1d9">ngrok</text>
+
+  <!-- Row 2 -->
+  <use href="#icon-lightning"  x="56"  y="1612" width="16" height="16" color="#742774"/>
+  <text x="78"  y="1625" font-size="13" fill="#c9d1d9">Power Automate</text>
+
+  <use href="#icon-sharepoint" x="206" y="1612" width="16" height="16" color="#036c70"/>
+  <text x="228" y="1625" font-size="13" fill="#c9d1d9">SharePoint</text>
+
+  <use href="#icon-email"      x="346" y="1612" width="16" height="16" color="#0078d4"/>
+  <text x="368" y="1625" font-size="13" fill="#c9d1d9">Email / Outlook</text>
+
+  <!-- Footer note -->
+  <text x="450" y="1668" text-anchor="middle" font-size="13" fill="#8b949e">TBX Event Simulator — Architecture Overview</text>
+  <text x="450" y="1688" text-anchor="middle" font-size="12" fill="#6e7681">Proof of concept · Not connected to real AT&amp;T systems</text>
+
+</svg>

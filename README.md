@@ -8,78 +8,9 @@ broker for downstream consumers including SharePoint and email notifications.
 
 ## Architecture
 
-```
-  ╔═════════════════════════════════════════════════════════════════════════════╗
-  ║                             SIMULATOR  LAYER                               ║
-  ╠═════════════════════════════════════════════════════════════════════════════╣
-  ║                                                                             ║
-  ║              ┌─────────────────────────────────────────┐                   ║
-  ║              │            Event Simulator               │                   ║
-  ║              │             (TypeScript)                 │                   ║
-  ║              │                                          │                   ║
-  ║              │  Simulates TBX Oracle ERP order          │                   ║
-  ║              │  lifecycle events and publishes          │                   ║
-  ║              │  them to RabbitMQ                        │                   ║
-  ║              └──────────────────┬──────────────────────┘                   ║
-  ║                                 │                                           ║
-  ╚═════════════════════════════════╪═════════════════════════════════════════╝
-                                    │  publishes events
-                                    ▼
-  ╔═════════════════════════════════════════════════════════════════════════════╗
-  ║                             MESSAGE  BROKER                                ║
-  ╠═════════════════════════════════════════════════════════════════════════════╣
-  ║                                                                             ║
-  ║              ┌─────────────────────────────────────────┐                   ║
-  ║              │                RabbitMQ                  │                   ║
-  ║              │            (topic exchange)              │                   ║
-  ║              │                                          │                   ║
-  ║              │  Exchange  :  tbx.events                 │                   ║
-  ║              │  Queue     :  tbx.events.all             │                   ║
-  ║              │  Queue     :  tbx.events.exceptions      │                   ║
-  ║              └──────────────────┬──────────────────────┘                   ║
-  ║                                 │                                           ║
-  ╚═════════════════════════════════╪═════════════════════════════════════════╝
-                                    │  consumes events
-                                    ▼
-  ╔═════════════════════════════════════════════════════════════════════════════╗
-  ║                               API  LAYER                                   ║
-  ╠═════════════════════════════════════════════════════════════════════════════╣
-  ║                                                                             ║
-  ║   ┌────────────────────────────────┐    ┌────────────────────────────────┐ ║
-  ║   │           REST API             │    │            MongoDB             │ ║
-  ║   │           (Express)            │───►│            (Docker)            │ ║
-  ║   │                                │    │                                │ ║
-  ║   │   Port       :  3001           │    │   Database   :  tbx            │ ║
-  ║   │   1. Ingest event              │    │   Collection :  orderevents    │ ║
-  ║   │   2. Persist to MongoDB        │    │   Survives API restarts        │ ║
-  ║   │   3. Fire webhook trigger      │    │                                │ ║
-  ║   └───────────────┬────────────────┘    └────────────────────────────────┘ ║
-  ║                   │                                                         ║
-  ╚═══════════════════╪═════════════════════════════════════════════════════════╝
-                      │  POST webhook  ·  via ngrok public tunnel
-                      ▼
-  ╔═════════════════════════════════════════════════════════════════════════════╗
-  ║                           DOWNSTREAM  CONSUMER                             ║
-  ╠═════════════════════════════════════════════════════════════════════════════╣
-  ║                                                                             ║
-  ║         ┌───────────────────────────────────────────────────────┐          ║
-  ║         │                   Power Automate                       │          ║
-  ║         │               (HTTP Request trigger)                  │          ║
-  ║         │                                                        │          ║
-  ║         │   1. Wakes up on webhook POST                         │          ║
-  ║         │   2. GET /api/events via ngrok tunnel                 │          ║
-  ║         │   3. Parses and processes event payload               │          ║
-  ║         └──────────────┬──────────────────────┬─────────────────┘          ║
-  ║                        │                      │                             ║
-  ║   ┌────────────────────┘                      └────────────────────┐        ║
-  ║   ▼                                                                ▼        ║
-  ║   ┌────────────────────────────────┐    ┌────────────────────────────────┐ ║
-  ║   │          SharePoint            │    │             Email              │ ║
-  ║   │         (event list)           │    │        (notifications)         │ ║
-  ║   └────────────────────────────────┘    └────────────────────────────────┘ ║
-  ║                                                                             ║
-  ╚═════════════════════════════════════════════════════════════════════════════╝
-```
+<p align="center">
+  <img src="architecture.svg" alt="TBX Event Simulator Architecture" width="100%" style="max-width:900px;" />
+</p>
 
 > **ngrok** exposes `localhost:3001` as a public HTTPS URL so Power Automate can reach the API.
 > Events are persisted to **MongoDB** and survive API restarts.
