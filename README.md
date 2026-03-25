@@ -100,17 +100,20 @@ npm run dev:api
 |--------|-------------------------------|--------------------------------------|
 | GET    | `/health`                     | Service health and counts            |
 | GET    | `/api/events`                 | List events (filterable)             |
-| GET    | `/api/events/:eventId`        | Single event by ID                   |
+| GET    | `/api/events/{eventId}`       | Single event by ID                   |
 | GET    | `/api/orders`                 | List orders (filterable)             |
-| GET    | `/api/orders/:orderId`        | Single order with event history      |
-| GET    | `/api/orders/:orderId/events` | Events for a specific order          |
+| GET    | `/api/orders/{orderId}`       | Single order with event history      |
+| GET    | `/api/orders/{orderId}/events`| Events for a specific order          |
 | GET    | `/api/stats`                  | Aggregate statistics                 |
+
+> **Note:** `{eventId}` and `{orderId}` are placeholders — replace with the actual ID value.
+> Example: `GET /api/events/3f2a1b4c-...` or `GET /api/orders/ORD-1773773838793-0001`
 
 ### Query Parameters
 
 Events and orders endpoints support:
 
-- `?status=SHIPPED` -- filter by status
+- `?status=BOOKED` -- filter by status (valid values: `BOOKED`, `SHIPPED`, `RECEIVED`, `PARTIALLY_RECEIVED`, `DATE_CHANGE`, `PAYMENT_FAILED`, `OUT_OF_STOCK`, `SHIPPING_DELAYED`, `ADDRESS_INVALID`, `SYSTEM_ERROR`)
 - `?customerId=CUST-1001` -- filter by customer
 - `?orderId=ORD-...` -- filter events by order (events endpoint only)
 - `?limit=50&offset=0` -- pagination
@@ -213,7 +216,7 @@ Inside your existing flow, add a **HTTP** action at the point where you want eve
 - **Method:** `GET`
 - **URI:** `https://<your-ngrok-url>/api/events?limit=20`
 
-> Use `?status=` to filter by a specific lifecycle stage, e.g. `?status=DELIVERED`.
+> Use `?status=` to filter by a specific lifecycle stage, e.g. `?status=BOOKED`, `?status=SHIPPED`, `?status=RECEIVED`.
 
 ### Step 2 — Parse the JSON response
 
@@ -261,9 +264,13 @@ Add a **Create item** action inside the loop:
 | Title             | `eventId`            |
 | Order ID          | `orderId`            |
 | Customer ID       | `customerId`         |
+| Customer Name     | `customerName`       |
 | Status            | `status`             |
 | Timestamp         | `timestamp`          |
-| Source System     | `sourceSystem`       |
+| Source System     | `source`             |
+| PO Number         | `poNumber`           |
+| Tracking Number   | `trackingNumber`     |
+| Exception Detail  | `exceptionDetail`    |
 
 #### Send an Email
 
@@ -273,10 +280,14 @@ Add a **Send an email (V2)** action inside the loop:
 - **Subject:** `TBX Event: [status] - [orderId]`
 - **Body:**
   ```
-  Order [orderId] for customer [customerId]
-  Status: [status]
-  Time:   [timestamp]
-  Source: [sourceSystem]
+  Order:    [orderId]
+  Customer: [customerName] ([customerId])
+  Status:   [status]
+  Time:     [timestamp]
+  Source:   [source]
+  PO:       [poNumber]
+  Tracking: [trackingNumber]
+  Exception:[exceptionDetail]
   ```
 
 ### Step 4 — Save and test
