@@ -130,7 +130,7 @@
   <rect x="30" y="490" width="840" height="200" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
   <rect x="30" y="490" width="840" height="36" rx="12" fill="rgba(0,120,212,0.22)"/>
   <rect x="30" y="514" width="840" height="12"  fill="rgba(0,120,212,0.22)"/>
-  <text x="450" y="513" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="2">API &amp; PERSISTENCE</text>
+  <text x="450" y="508" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="2">API &amp; PERSISTENCE</text>
 
   <!-- REST API box (left)  x=95, w=340, center=265 -->
   <rect x="95"  y="514" width="340" height="162" rx="8" fill="#1c2128" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
@@ -172,7 +172,7 @@
   <rect x="30" y="750" width="840" height="140" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
   <rect x="30" y="750" width="840" height="36" rx="12" fill="rgba(0,180,216,0.22)"/>
   <rect x="30" y="774" width="840" height="12"  fill="rgba(0,180,216,0.22)"/>
-  <text x="450" y="773" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="2">TUNNEL</text>
+  <text x="450" y="768" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff" letter-spacing="2">TUNNEL</text>
 
   <!-- ngrok box -->
   <rect x="260" y="774" width="380" height="102" rx="8" fill="#1c2128" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
