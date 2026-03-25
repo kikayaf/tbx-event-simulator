@@ -84,8 +84,20 @@ The API uses a webhook push pattern:
 Set `POWER_AUTOMATE_WEBHOOK_URL` in `.env` to the HTTP POST URL from the Power Automate HTTP Request trigger.
 Leave blank to disable webhook notifications (API still works normally).
 
+## MongoDB
+- Container: `tbx-mongodb`, port `27017`, database `tbx`, collection `orderevents`
+- Events are persisted on ingestion using upsert on `eventId` (deduplication safe)
+- On API startup, all events are loaded from MongoDB to rebuild the in-memory order cache
+- Query via mongosh: `docker exec -it tbx-mongodb mongosh` then `use tbx` and `db.orderevents.find().pretty()`
+- Or use MongoDB Compass (GUI): https://www.mongodb.com/try/download/compass → connect to `mongodb://localhost:27017`
+
+## RabbitMQ Notes
+- Queues appear empty during normal operation — the API consumes messages instantly (expected)
+- To see messages mid-flight: stop the API, run simulator only (`npm run dev:simulator`), then check http://localhost:15672
+- Monitor live message rates via the RabbitMQ management UI → Queues → Message rates graph
+
 ## Conventions
 - All source in `src/`, compiled output in `dist/`
 - Single source system: `TBX-Oracle`
-- In-memory event store (no database) -- this is a POC
+- Events persisted to MongoDB — survive API restarts
 - Events are stored newest-first in API responses

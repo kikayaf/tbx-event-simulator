@@ -172,9 +172,9 @@ Events and orders endpoints support:
 
 ## RabbitMQ Management
 
-- URL: http://localhost:15672
-- Username: `tbx_user`
-- Password: `tbx_pass`
+- **URL:** http://localhost:15672
+- **Username:** `tbx_user`
+- **Password:** `tbx_pass`
 
 ### Topology
 
@@ -182,6 +182,59 @@ Events and orders endpoints support:
 - **Queue:** `tbx.events.all` -- receives all events (bound to `order.#`)
 - **Queue:** `tbx.events.exceptions` -- receives exception events only (bound to each exception routing key)
 - **Routing keys:** `order.BOOKED`, `order.SHIPPED`, `order.RECEIVED`, `order.PARTIALLY_RECEIVED`, `order.DATE_CHANGE`, `order.PAYMENT_FAILED`, `order.OUT_OF_STOCK`, `order.SHIPPING_DELAYED`, `order.ADDRESS_INVALID`, `order.SYSTEM_ERROR`
+
+### Why the queue appears empty
+
+The API consumes and acknowledges messages instantly — queues will show as empty during
+normal operation. This is expected. To inspect messages mid-flight:
+
+1. Stop the API (`Ctrl+C` or stop the `tbx-api` container)
+2. Run the simulator only: `npm run dev:simulator`
+3. Open **http://localhost:15672** → **Queues** → `tbx.events.all` → **Get Messages**
+
+To monitor live message rates without stopping the API:
+- Go to **Queues** → `tbx.events.all` → view the **Message rates** graph
+
+## MongoDB
+
+Events are persisted to MongoDB so they survive API restarts. The API rebuilds its
+in-memory order cache from MongoDB on startup.
+
+- **Container:** `tbx-mongodb`
+- **Port:** `27017`
+- **Database:** `tbx`
+- **Collection:** `orderevents`
+
+### Querying persisted events with mongosh
+
+```bash
+# Connect to the MongoDB container
+docker exec -it tbx-mongodb mongosh
+
+# Switch to the tbx database
+use tbx
+
+# See all events
+db.orderevents.find().pretty()
+
+# Count total events
+db.orderevents.countDocuments()
+
+# Filter by status
+db.orderevents.find({ status: "BOOKED" }).pretty()
+
+# Filter by orderId
+db.orderevents.find({ orderId: "ORD-1773773838793-0001" }).pretty()
+
+# Filter by customerId
+db.orderevents.find({ customerId: "CUST-1001" }).pretty()
+
+# Exit
+exit
+```
+
+> **Tip:** You can also use **MongoDB Compass** (free GUI) to browse the data visually.
+> Download at https://www.mongodb.com/try/download/compass and connect to `mongodb://localhost:27017`.
 
 ## Configuration
 
