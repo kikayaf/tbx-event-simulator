@@ -173,6 +173,7 @@ Set via environment variables or `.env` file (copy `.env.example`):
 | `SIMULATOR_DATE_CHANGE_RATE`     | 0.20    | Probability of a DATE_CHANGE before SHIPPED      |
 | `SIMULATOR_PARTIAL_RECEIVE_RATE` | 0.15    | Probability of PARTIALLY_RECEIVED vs RECEIVED    |
 | `API_PORT`                       | 3001    | REST API listen port                             |
+| `POWER_AUTOMATE_WEBHOOK_URL`     | (blank) | Power Automate HTTP trigger URL — leave blank to disable |
 
 ## Exposing the API Externally with ngrok
 
@@ -235,12 +236,48 @@ from this UI without re-triggering the consumer.
 
 ## Integrating with Power Automate
 
-With the API publicly exposed via ngrok, your existing Power Automate flow can pull
-in TBX events using the built-in HTTP connector and route them to SharePoint and email.
+The API uses a **webhook push** pattern to trigger your Power Automate flow in real time.
+Every time a new event is ingested from RabbitMQ, the API POSTs to your Power Automate
+HTTP trigger URL — waking the flow up instantly rather than waiting for a poll.
 
-### Step 1 — Add an HTTP action (fetch events)
+```
+TBX Oracle → RabbitMQ → API ──POST /trigger──▶ Power Automate
+                          │                           │
+                     ngrok tunnel              GET /api/events
+                     (public URL)              via ngrok URL
+                                                      │
+                                          ┌───────────┴───────────┐
+                                          ▼                       ▼
+                                     SharePoint                 Email
+```
 
-Inside your existing flow, add a **HTTP** action at the point where you want events pulled:
+### Step 1 — Get your Power Automate HTTP trigger URL
+
+1. Open your flow in Power Automate
+2. Click the **HTTP Request trigger** at the top of the flow
+3. Copy the **HTTP POST URL**
+
+### Step 2 — Add the webhook URL to your .env
+
+```bash
+# .env
+POWER_AUTOMATE_WEBHOOK_URL=https://prod-xx.westus.logic.azure.com/workflows/...
+```
+
+Restart the API after saving:
+```bash
+npm run dev:all
+```
+
+The startup log will confirm the webhook is active:
+```
+  Webhook: https://prod-xx.westus.logic.azure.com/workflows/...
+```
+
+### Step 3 — Add an HTTP action inside your flow (fetch full events)
+
+Your flow wakes up when the API POSTs to it. Inside the flow, add a **HTTP** action
+to fetch the full event list from the API via ngrok:
 
 - **Method:** `GET`
 - **URI:** `https://<your-ngrok-url>/api/events?limit=20`

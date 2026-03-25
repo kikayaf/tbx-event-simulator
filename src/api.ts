@@ -25,12 +25,30 @@ import {
   QUEUE_ALL,
 } from "./types";
 
-const PORT = parseInt(process.env.API_PORT ?? "3000", 10);
+const PORT               = parseInt(process.env.API_PORT ?? "3000", 10);
+const WEBHOOK_URL        = process.env.POWER_AUTOMATE_WEBHOOK_URL ?? "";
 
 // --- In-memory stores ------------------------------------------------------
 
 const events: OrderEvent[] = [];
 const orders: Map<string, Order> = new Map();
+
+// --- Power Automate webhook ------------------------------------------------
+
+async function notifyPowerAutomate(event: OrderEvent): Promise<void> {
+  if (!WEBHOOK_URL) return;
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ event }),
+    });
+    console.log(`[webhook] POST to Power Automate → ${res.status}`);
+  } catch (err) {
+    console.warn(`[webhook] Failed to notify Power Automate:`, err);
+  }
+}
 
 // --- Event ingestion -------------------------------------------------------
 
@@ -55,6 +73,9 @@ function ingestEvent(event: OrderEvent): void {
   order.currentStatus = event.status;
   order.updatedAt = event.timestamp;
   order.events.push(event);
+
+  // Notify Power Automate if webhook is configured
+  notifyPowerAutomate(event);
 }
 
 // --- Express app -----------------------------------------------------------
@@ -197,7 +218,8 @@ app.get("/api/stats", (_req: Request, res: Response) => {
 async function start(): Promise<void> {
   console.log("==============================================");
   console.log("  AT&T TBX Event API");
-  console.log(`  Port: ${PORT}`);
+  console.log(`  Port:    ${PORT}`);
+  console.log(`  Webhook: ${WEBHOOK_URL || "disabled"}`);
   console.log("==============================================\n");
 
   await connect();
